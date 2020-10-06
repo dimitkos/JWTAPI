@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using API.Contexts;
 using API.Models;
 using API.Services;
@@ -11,13 +6,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System;
+using System.Text;
 
 namespace API
 {
@@ -65,6 +61,29 @@ namespace API
                 };
             });
 
+            var swaggerSettings = _configuration.GetSection("Swagger").Get<SwaggerSettings>();
+
+            services.AddSwaggerGen(config =>
+            {
+                config.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Version = swaggerSettings.Version,
+                    Title = swaggerSettings.Title,
+                    Description = swaggerSettings.Description,
+                    TermsOfService = new Uri(swaggerSettings.TermsOfService),
+                    License = new OpenApiLicense()
+                    {
+                        Name = swaggerSettings.LicenseName
+                    },
+                    Contact = new OpenApiContact()
+                    {
+                        Name = swaggerSettings.AuthorName,
+                        Email = swaggerSettings.Email,
+                        Url = new Uri(swaggerSettings.Url)
+                    }
+                });
+            });
+
             services.AddControllers();
         }
 
@@ -84,6 +103,13 @@ namespace API
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+
+            app.UseSwagger();
+
+            app.UseSwaggerUI(config =>
+            {
+                config.SwaggerEndpoint("/swagger/v1/swagger.json", "JWTAPI");
             });
         }
     }
