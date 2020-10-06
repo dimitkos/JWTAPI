@@ -61,25 +61,25 @@ namespace API
                 };
             });
 
-            //var swaggerSettings = _configuration.GetSection("Swagger");
+            var swaggerSettings = _configuration.GetSection("Swagger").Get<SwaggerSettings>();
 
             services.AddSwaggerGen(config =>
             {
                 config.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Version = "v1",
-                    Title = "Jwt Api",
-                    Description = "This is a Web API for Jwt and secured operations",
-                    TermsOfService = new Uri("https://github.com/dimitkos"),
+                    Version = swaggerSettings.Version,
+                    Title = swaggerSettings.Title,
+                    Description = swaggerSettings.Description,
+                    TermsOfService = new Uri(swaggerSettings.TermsOfService),
                     License = new OpenApiLicense()
                     {
-                        Name = "MIT"
+                        Name = swaggerSettings.LicenseName
                     },
                     Contact = new OpenApiContact()
                     {
-                        Name = "Dimitris Kosmas",
-                        Email = "dimitkos@yahoo.gr",
-                        Url = new Uri("https://github.com/dimitkos")
+                        Name = swaggerSettings.AuthorName,
+                        Email = swaggerSettings.Email,
+                        Url = new Uri(swaggerSettings.Url)
                     }
                 });
             });
