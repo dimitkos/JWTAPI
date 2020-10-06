@@ -2,6 +2,7 @@ using API.Contexts;
 using API.Models;
 using API.Services;
 using API.Settings;
+using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -84,6 +85,7 @@ namespace API
                 });
             });
 
+            services.AddAutoMapper(typeof(Startup));
             services.AddControllers();
         }
 
