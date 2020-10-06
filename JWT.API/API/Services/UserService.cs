@@ -4,6 +4,7 @@ using API.Settings;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using System.IdentityModel.Tokens.Jwt;
 using System.Threading.Tasks;
 
 namespace API.Services
@@ -21,6 +22,39 @@ namespace API.Services
             _roleManager = roleManager;
             _mapper = mapper;
             _jwt = jwt.Value;
+        }
+
+        public async Task<AuthenticationModel> GetTokenAsync(TokenRequestModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if (user == null)
+            {
+                return new AuthenticationModel
+                {
+                    IsAuthenticated = false,
+                    Message = $"No Accounts Registered with {model.Email}"
+                };
+            }
+
+            var isCorrectPassword = await _userManager.CheckPasswordAsync(user, model.Password);
+
+            if (isCorrectPassword)
+            {
+                JwtSecurityToken jwtSecurityToken = await CreateJwtToken(user);
+                //todo
+
+                return new AuthenticationModel
+                {
+                    IsAuthenticated = true,
+                    //todo
+                };
+            }
+
+            return new AuthenticationModel
+            {
+                //todo
+            };
         }
 
         public async Task<string> RegisterAsync(RegisterModel model)
@@ -49,6 +83,14 @@ namespace API.Services
             {
                 return $"Email {userRestration.Email } is already registered.";
             }
+        }
+
+        private async Task<JwtSecurityToken> CreateJwtToken(ApplicationUser user)
+        {
+            return new JwtSecurityToken
+            {
+
+            };
         }
     }
 }

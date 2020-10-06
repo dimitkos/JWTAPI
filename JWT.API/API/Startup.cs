@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System;
 using System.Text;
 
@@ -61,6 +62,29 @@ namespace API
                 };
             });
 
+            var swaggerSettings = _configuration.GetSection("Swagger").Get<SwaggerSettings>();
+
+            services.AddSwaggerGen(config =>
+            {
+                config.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Version = swaggerSettings.Version,
+                    Title = swaggerSettings.Title,
+                    Description = swaggerSettings.Description,
+                    TermsOfService = new Uri(swaggerSettings.TermsOfService),
+                    License = new OpenApiLicense()
+                    {
+                        Name = swaggerSettings.LicenseName
+                    },
+                    Contact = new OpenApiContact()
+                    {
+                        Name = swaggerSettings.AuthorName,
+                        Email = swaggerSettings.Email,
+                        Url = new Uri(swaggerSettings.Url)
+                    }
+                });
+            });
+
             services.AddAutoMapper(typeof(Startup));
             services.AddControllers();
         }
@@ -81,6 +105,13 @@ namespace API
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+
+            app.UseSwagger();
+
+            app.UseSwaggerUI(config =>
+            {
+                config.SwaggerEndpoint("/swagger/v1/swagger.json", "JWTAPI");
             });
         }
     }
