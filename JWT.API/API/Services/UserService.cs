@@ -1,4 +1,5 @@
-﻿using API.Models;
+﻿using API.Constants;
+using API.Models;
 using API.Settings;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -19,8 +20,30 @@ namespace API.Services
             _jwt = jwt.Value;
         }
 
-        public async Task Test()
+        public async Task<string> RegisterAsync(RegisterModel model)
         {
+            var userRestration = new ApplicationUser
+            {
+                UserName = model.Username,
+                Email = model.Email,
+                FirstName = model.FirstName,
+                LastName = model.LastName
+            };
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if(user == null)
+            {
+                var result = await _userManager.CreateAsync(userRestration, model.Password);
+
+                if (result.Succeeded)
+                    await _userManager.AddToRoleAsync(userRestration, Authorization.defaultRole.ToString());
+                return $"User Registered with username {userRestration.UserName}";
+            }
+            else
+            {
+                return $"Email {userRestration.Email } is already registered.";
+            }
         }
     }
 }
