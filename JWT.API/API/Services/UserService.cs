@@ -30,6 +30,32 @@ namespace API.Services
             _jwt = jwt.Value;
         }
 
+        public async Task<string> AddRoleAsync(AddRoleModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if (user == null)
+                return $"No Accounts Registered with {model.Email}.";
+
+            var isCorrectPassword = await _userManager.CheckPasswordAsync(user, model.Password);
+
+            if (!isCorrectPassword)
+                return $"Incorrect Credentials for user {user.Email}.";
+
+            var roleExists = Enum.GetNames(typeof(Authorization.Roles)).Any(x => x.ToLower() == model.Role.ToLower());
+
+            if (!roleExists)
+                return $"Role {model.Role} not found.";
+
+            var validRole = Enum.GetValues(typeof(Authorization.Roles)).Cast<Authorization.Roles>()
+                    .Where(x => x.ToString().ToLower() == model.Role.ToLower())
+                    .FirstOrDefault();
+
+            await _userManager.AddToRoleAsync(user, validRole.ToString());
+
+            return $"Added {model.Role} to user {model.Email}.";
+        }
+
         public async Task<AuthenticationModel> GetTokenAsync(TokenRequestModel model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
