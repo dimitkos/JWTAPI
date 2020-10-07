@@ -1,4 +1,5 @@
 ﻿using API.Constants;
+using API.Contexts;
 using API.Entities;
 using API.Models;
 using API.Settings;
@@ -19,16 +20,22 @@ namespace API.Services
 {
     public class UserService : IUserService
     {
+        private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IMapper _mapper;
         private readonly JwtSettings _jwt;
 
-        public UserService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper, IOptions<JwtSettings> jwt)
+        public UserService(UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            IMapper mapper,
+            ApplicationDbContext context,
+            IOptions<JwtSettings> jwt)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _mapper = mapper;
+            _context = context;
             _jwt = jwt.Value;
         }
 
@@ -79,13 +86,17 @@ namespace API.Services
                 var token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
                 var roles = await _userManager.GetRolesAsync(user);//.ConfigureAwait(false);
 
+                var (refreshToken, refreshTokenExpiration) = await GetRefreshToken(user);
+
                 return new AuthenticationModel
                 {
                     IsAuthenticated = true,
                     Token = token,
                     Email = user.Email,
                     UserName = user.UserName,
-                    Roles = roles.ToList()
+                    Roles = roles.ToList(),
+                    RefreshToken = refreshToken,
+                    RefreshTokenExpiration = refreshTokenExpiration
                 };
             }
 
@@ -151,19 +162,43 @@ namespace API.Services
             return claims;
         }
 
+        private async Task<(string refreshToken, DateTime refreshTokenExpiration)> GetRefreshToken(ApplicationUser user)
+        {
+            string refreshToken = string.Empty;
+            DateTime refreshTokenExpiration = default;
+
+            if (user.RefreshTokens.Any(a => a.IsActive))
+            {
+                var activeRefreshToken = user.RefreshTokens.Where(a => a.IsActive == true).FirstOrDefault();
+                refreshToken = activeRefreshToken.Token;
+                refreshTokenExpiration = activeRefreshToken.Expires;
+            }
+            else
+            {
+                var refreshTokenCreated = CreateRefreshToken();
+
+                refreshToken = refreshTokenCreated.Token;
+                refreshTokenExpiration = refreshTokenCreated.Expires;
+
+                user.RefreshTokens.Add(refreshTokenCreated);
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+            }
+
+            return (refreshToken, refreshTokenExpiration);
+        }
+
         private RefreshToken CreateRefreshToken()
         {
             var randomNumber = new byte[32];
-            using (var generator = new RNGCryptoServiceProvider())
+            using var generator = new RNGCryptoServiceProvider();
+            generator.GetBytes(randomNumber);
+            return new RefreshToken
             {
-                generator.GetBytes(randomNumber);
-                return new RefreshToken
-                {
-                    Token = Convert.ToBase64String(randomNumber),
-                    Expires = DateTime.UtcNow.AddDays(7),
-                    Created = DateTime.UtcNow
-                };
-            }
+                Token = Convert.ToBase64String(randomNumber),
+                Expires = DateTime.UtcNow.AddDays(7),
+                Created = DateTime.UtcNow
+            };
         }
     }
 }
