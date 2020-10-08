@@ -5,6 +5,7 @@ using API.Models;
 using API.Settings;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -125,6 +126,52 @@ namespace API.Services
             {
                 return $"Email {userRestration.Email } is already registered.";
             }
+        }
+
+        public async Task<AuthenticationModel> RefreshTokenAsync(string token)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(x => x.RefreshTokens.Any(t => t.Token == token));
+
+            if (user == null)
+                return new AuthenticationModel
+                {
+                    IsAuthenticated = false,
+                    Message = $"Token did not match any users.",
+                };
+
+            var refreshToken = user.RefreshTokens.Single(t => t.Token == token);
+
+            if (!refreshToken.IsActive)
+                return new AuthenticationModel
+                {
+                    IsAuthenticated = false,
+                    Message = $"Token Not Active.",
+                };
+
+            //Revoke Current Refresh Token
+            refreshToken.Revoked = DateTime.UtcNow;
+
+            //Generate new Refresh Token and save to Database
+            var newRefreshToken = CreateRefreshToken();
+            user.RefreshTokens.Add(newRefreshToken);
+            _context.Update(user);
+            await _context.SaveChangesAsync();
+
+            JwtSecurityToken jwtSecurityToken = await CreateJwtToken(user);
+            var newToken = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            return new AuthenticationModel
+            {
+                IsAuthenticated = true,
+                UserName = user.UserName,
+                Email = user.Email,
+                Token = newToken,
+                Roles = roles.ToList(),
+                RefreshToken = newRefreshToken.Token,
+                RefreshTokenExpiration = newRefreshToken.Expires
+            };
         }
 
         private async Task<JwtSecurityToken> CreateJwtToken(ApplicationUser user)
