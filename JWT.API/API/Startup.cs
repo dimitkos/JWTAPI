@@ -31,9 +31,11 @@ namespace API
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<JwtSettings>(_configuration.GetSection("JWT"));
+            services.Configure<MailSettings>(_configuration.GetSection("MailSettings"));
 
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddScoped<IUserService, UserService>();
+            services.AddTransient<IMailService, MailService>();
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
