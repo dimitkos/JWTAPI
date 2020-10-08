@@ -12,5 +12,6 @@ namespace API.Services
         Task<string> AddRoleAsync(AddRoleModel model);
         Task<AuthenticationModel> RefreshTokenAsync(string token);
         Task<IEnumerable<RefreshToken>> GetById(string id);
+        Task<bool> RevokeToken(string token);
     }
 }

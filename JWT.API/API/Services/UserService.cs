@@ -174,12 +174,31 @@ namespace API.Services
             };
         }
 
-
         public async Task<IEnumerable<RefreshToken>> GetById(string id)
         {
             var user = await _context.Users.FindAsync(id);
 
             return user.RefreshTokens;
+        }
+
+        public async Task<bool> RevokeToken(string token)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(x => x.RefreshTokens.Any(t => t.Token == token));
+
+            if (user == null)
+                return false;
+
+            var refreshToken = user.RefreshTokens.Single(x => x.Token == token);
+
+            if (!refreshToken.IsActive)
+                return false;
+
+            // revoke token and save
+            refreshToken.Revoked = DateTime.UtcNow;
+            _context.Update(user);
+            var res = await _context.SaveChangesAsync();
+
+            return res > 0;
         }
 
         private async Task<JwtSecurityToken> CreateJwtToken(ApplicationUser user)
