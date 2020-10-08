@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using API.Entities;
+using Microsoft.AspNetCore.Identity;
+using System.Collections.Generic;
 
 namespace API.Models
 {
@@ -6,5 +8,6 @@ namespace API.Models
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public List<RefreshToken> RefreshTokens { get; set; }
     }
 }
