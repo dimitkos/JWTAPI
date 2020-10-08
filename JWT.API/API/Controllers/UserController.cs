@@ -1,5 +1,6 @@
 ﻿using API.Models;
 using API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -50,6 +51,14 @@ namespace API.Controllers
                 SetRefreshTokenInCookie(response.RefreshToken);
 
             return Ok(response);
+        }
+
+        [Authorize]
+        [HttpGet("tokens/{id}")]
+        public async Task<IActionResult> GetRefreshTokens(string id)
+        {
+            var refreshTokens = await _userService.GetById(id);
+            return Ok(refreshTokens);
         }
 
         private void SetRefreshTokenInCookie(string refreshToken)

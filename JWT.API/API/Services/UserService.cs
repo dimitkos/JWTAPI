@@ -174,6 +174,14 @@ namespace API.Services
             };
         }
 
+
+        public async Task<IEnumerable<RefreshToken>> GetById(string id)
+        {
+            var user = await _context.Users.FindAsync(id);
+
+            return user.RefreshTokens;
+        }
+
         private async Task<JwtSecurityToken> CreateJwtToken(ApplicationUser user)
         {
             var claims = await GetClaims(user);
