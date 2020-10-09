@@ -1,4 +1,5 @@
-﻿using API.Models;
+﻿using API.Constants;
+using API.Models;
 using API.Settings;
 using MailKit.Net.Smtp;
 using MailKit.Security;
@@ -26,11 +27,26 @@ namespace API.Services
 
             var email = CreateEmail(mailRequest, builder);
 
-            using var smtp = new SmtpClient();
-            smtp.Connect(_mailSettings.Host, _mailSettings.Port, SecureSocketOptions.StartTls);
-            smtp.Authenticate(_mailSettings.Mail, _mailSettings.Password);
-            await smtp.SendAsync(email);
-            smtp.Disconnect(true);
+            await Send(email);
+        }
+
+        public async Task SendCustomEmailAsync(RegisterModel request, string subject)
+        {
+            var mailtext = LoadTemplate(LoadTemplatePaths.WelcomeTemplate);
+            mailtext = mailtext.Replace("[username]", request.Username).Replace("[email]", request.Email);
+
+            var mailRequest = new MailRequest
+            {
+                ToEmail = request.Email,
+                Subject = subject
+            };
+
+            var builder = CreateBody(mailRequest.Attachments);
+            builder.HtmlBody = mailtext;
+
+            var email = CreateEmail(mailRequest, builder);
+
+            await Send(email);
         }
 
         private MimeMessage CreateEmail(MailRequest mailRequest, BodyBuilder builder)
@@ -66,6 +82,25 @@ namespace API.Services
             }
 
             return builder;
+        }
+
+        private async Task Send(MimeMessage email)
+        {
+            using var smtp = new SmtpClient();
+            smtp.Connect(_mailSettings.Host, _mailSettings.Port, SecureSocketOptions.StartTls);
+            smtp.Authenticate(_mailSettings.Mail, _mailSettings.Password);
+            await smtp.SendAsync(email);
+            smtp.Disconnect(true);
+        }
+
+        private string LoadTemplate(string path)
+        {
+            string FilePath = Directory.GetCurrentDirectory() + path;
+            StreamReader str = new StreamReader(FilePath);
+            string mailText = str.ReadToEnd();
+            str.Close();
+
+            return mailText;
         }
     }
 }

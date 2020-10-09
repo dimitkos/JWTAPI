@@ -25,18 +25,21 @@ namespace API.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IMapper _mapper;
+        private readonly IMailService _mailService;
         private readonly JwtSettings _jwt;
 
         public UserService(UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IMapper mapper,
             ApplicationDbContext context,
+            IMailService mailService,
             IOptions<JwtSettings> jwt)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _mapper = mapper;
             _context = context;
+            _mailService = mailService;
             _jwt = jwt.Value;
         }
 
@@ -120,6 +123,8 @@ namespace API.Services
 
                 if (result.Succeeded)
                     await _userManager.AddToRoleAsync(userRestration, Authorization.defaultRole.ToString());
+
+                await _mailService.SendCustomEmailAsync(model, $"Welcome {model.Username}");
                 return $"User Registered with username {userRestration.UserName}";
             }
             else
